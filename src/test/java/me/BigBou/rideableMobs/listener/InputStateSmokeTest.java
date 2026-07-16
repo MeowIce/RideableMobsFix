@@ -3,8 +3,11 @@ package me.BigBou.rideableMobs.listener;
 import me.BigBou.rideableMobs.util.Util;
 import org.bukkit.util.Vector;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 public final class InputStateSmokeTest {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         InputState all = new InputState(true, true, true, true, true, true, true);
         assert all.forward();
         assert all.backward();
@@ -29,5 +32,11 @@ public final class InputStateSmokeTest {
 
         Vector diagonal = Util.horizontalVelocity(0, new InputState(true, false, true, false, false, false, false), 0.4);
         assert Math.abs(diagonal.length() - 0.4) < 0.000001;
+
+        String pluginYaml = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        assert pluginYaml.contains("rideablemobs.commands:");
+        assert pluginYaml.contains("rideablemobs.toggle:");
+        assert pluginYaml.contains("rideablemobs.commands.permission: true");
+        assert pluginYaml.contains("rideablemobs.commands.toggle: true");
     }
 }

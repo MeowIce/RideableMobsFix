@@ -13,6 +13,18 @@ commands:
     usage: /rideablemobs <command>
 
 permissions:
+  rideablemobs.commands:
+    description: Legacy access to all RideableMobs commands
+    default: op
+    children:
+      rideablemobs.commands.permission: true
+      rideablemobs.commands.reload: true
+      rideablemobs.commands.toggle: true
+  rideablemobs.toggle:
+    description: Legacy access to the toggle command
+    default: op
+    children:
+      rideablemobs.commands.toggle: true
   rideablemobs.commands.permission:
     description: Allows managing ride permissions for players and entity types
     default: op
