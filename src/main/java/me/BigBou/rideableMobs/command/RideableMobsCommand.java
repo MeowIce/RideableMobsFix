@@ -18,14 +18,16 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.StringUtil;
 
 public class RideableMobsCommand implements CommandExecutor, TabCompleter {
     private JavaPlugin plugin;
-    private static HashMap<UUID, PermissionAttachment> permissions;
     private static final Set<UUID> disabledPlayers = new HashSet<>();
+    // Tracks explicitly denied entity types per player (overrides OP permissions)
+    private static final HashMap<UUID, Set<String>> deniedEntities = new HashMap<>();
+    // Tracks explicitly granted entity types per player
+    private static final HashMap<UUID, Set<String>> grantedEntities = new HashMap<>();
     private static List<String> availableCommands = new ArrayList<String>() {
         {
             this.add("permission");
@@ -46,9 +48,30 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    /**
+     * Checks if a player can ride a specific entity type.
+     * Explicitly denied entities (via /rm permission) always take priority.
+     * Then explicitly granted entities are checked.
+     * Finally falls back to Bukkit permission system.
+     */
+    public static boolean canRide(Player player, String entityType) {
+        UUID uuid = player.getUniqueId();
+        // Check if explicitly denied via /rm permission
+        Set<String> denied = deniedEntities.get(uuid);
+        if (denied != null && denied.contains(entityType)) {
+            return false;
+        }
+        // Check if explicitly granted via /rm permission
+        Set<String> granted = grantedEntities.get(uuid);
+        if (granted != null && granted.contains(entityType)) {
+            return true;
+        }
+        // Fallback to Bukkit permission system
+        return player.hasPermission("rideablemobs.ride.*") || player.hasPermission("rideablemobs.ride." + entityType);
+    }
+
     public RideableMobsCommand(JavaPlugin plugin) {
         this.plugin = plugin;
-        permissions = new HashMap();
     }
 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -116,9 +139,19 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
                     }
                     boolean value = Boolean.parseBoolean(args[3]);
 
-                    PermissionAttachment attachment = (PermissionAttachment)permissions.computeIfAbsent(player.getUniqueId(), (playerUUID) -> player.addAttachment(this.plugin));
-                    String var10001 = entityType.name().toLowerCase();
-                    attachment.setPermission("rideablemobs.ride." + var10001, value);
+                    String entityName = entityType.name().toLowerCase();
+                    UUID targetUUID = player.getUniqueId();
+                    if (value) {
+                        // Grant: remove from denied, add to granted
+                        Set<String> denied = deniedEntities.get(targetUUID);
+                        if (denied != null) denied.remove(entityName);
+                        grantedEntities.computeIfAbsent(targetUUID, k -> new HashSet<>()).add(entityName);
+                    } else {
+                        // Deny: remove from granted, add to denied
+                        Set<String> granted = grantedEntities.get(targetUUID);
+                        if (granted != null) granted.remove(entityName);
+                        deniedEntities.computeIfAbsent(targetUUID, k -> new HashSet<>()).add(entityName);
+                    }
                     String msg = this.plugin.getConfig().getString(value ? "permission-set-success" : "permission-removed-success", value ? "&aPermission set successfully." : "&aPermission removed successfully.");
                     sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
                     Optional<String> message = Optional.of(ChatColor.translateAlternateColorCodes('&', (String)Objects.requireNonNull(this.plugin.getConfig().getString(value ? "granted-permission" : "revoked-permission"))));

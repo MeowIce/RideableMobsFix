@@ -60,6 +60,7 @@ public class PlayerListener implements Listener {
                     EntityType type = entity.getType();
                     String entityType = !(entity instanceof ComplexEntityPart) && !(entity instanceof ComplexLivingEntity) ? type.name().toLowerCase() : "ender_dragon";
                     boolean isEnabled = !(entity instanceof ComplexEntityPart) && !(entity instanceof ComplexLivingEntity) ? this.plugin.getConfig().getBoolean(entityType) : this.plugin.getConfig().getBoolean("ender_dragon");
+
                     if (!isEnabled) {
                         String message = this.plugin.getConfig().getString("entity-disabled");
 
@@ -69,7 +70,7 @@ public class PlayerListener implements Listener {
                             player.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
                         }
 
-                    } else if (!player.hasPermission("rideablemobs.ride.*") && !player.hasPermission("rideablemobs.ride." + entityType)) {
+                    } else if (!me.BigBou.rideableMobs.command.RideableMobsCommand.canRide(player, entityType)) {
                         String message = this.plugin.getConfig().getString("no-permission-ride");
 
                         assert message != null;
