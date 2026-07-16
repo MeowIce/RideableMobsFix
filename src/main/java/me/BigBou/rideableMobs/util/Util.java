@@ -14,7 +14,6 @@ import org.bukkit.entity.WaterMob;
 import org.bukkit.entity.EnderDragon;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
-import me.BigBou.rideableMobs.listener.InputListener;
 import me.BigBou.rideableMobs.listener.InputState;
 import org.bukkit.plugin.Plugin;
 
@@ -115,15 +114,17 @@ public class Util {
             velocity.setZ(0);
         }
 
-        if (vehicle.isInWater() && !Util.canSwim(vehicle) && !vehicle.isOnGround()) {
+        boolean canSwim = Util.canSwim(vehicle);
+        boolean canFly = Util.canFly(vehicle);
+        if (vehicle.isInWater() && !canSwim && !vehicle.isOnGround()) {
             velocity.setY(-0.08);
         }
 
-        if (Util.canFly(vehicle) && !vehicle.isOnGround()) {
+        if (canFly && !vehicle.isOnGround()) {
             velocity.setY(-0.08);
         }
 
-        if (input.jump() && (Util.canFly(vehicle) || Util.canSwim(vehicle) && vehicle.isInWater() || vehicle.isOnGround())) {
+        if (input.jump() && (canFly || canSwim && vehicle.isInWater() || vehicle.isOnGround())) {
             velocity.setY(0.5);
         }
 

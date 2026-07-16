@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -33,6 +34,10 @@ public class InputListener extends PacketAdapter {
 
     public static void removeInput(UUID playerId) {
         playerInputs.remove(playerId);
+    }
+
+    public static void forEachInput(BiConsumer<UUID, InputState> consumer) {
+        playerInputs.forEach(consumer);
     }
 
     public void onPacketReceiving(PacketEvent event) {
