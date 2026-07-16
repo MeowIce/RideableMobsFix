@@ -14,7 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class InputListener extends PacketAdapter {
     private static final Logger log = LoggerFactory.getLogger(InputListener.class);
@@ -23,7 +25,15 @@ public class InputListener extends PacketAdapter {
         super(plugin, new PacketType[]{PacketType.Play.Client.STEER_VEHICLE});
     }
 
-    public static HashMap<Player, InputListener.WrappedInput> playerInputs = new HashMap<>();
+    private static final ConcurrentMap<UUID, InputState> playerInputs = new ConcurrentHashMap<>();
+
+    public static InputState getInput(UUID playerId) {
+        return playerInputs.get(playerId);
+    }
+
+    public static void removeInput(UUID playerId) {
+        playerInputs.remove(playerId);
+    }
 
     public void onPacketReceiving(PacketEvent event) {
         Player player = event.getPlayer();
@@ -32,73 +42,35 @@ public class InputListener extends PacketAdapter {
             if (vehicle != null && !(vehicle instanceof Vehicle)) {
                 PacketContainer packet = event.getPacket();
                 Object object = packet.getModifier().read(0);
-                InputListener.WrappedInput input = new InputListener.WrappedInput(object);
-                playerInputs.put(player, input);
+                InputState input = readInput(object);
+                if (input != null) {
+                    playerInputs.put(player.getUniqueId(), input);
+                }
             }
         }
     }
-    public class WrappedInput implements Input {
-        private final Object handle;
 
-        public WrappedInput(Object handle) {
-            this.handle = handle;
+    private static InputState readInput(Object handle) {
+        if (handle == null) {
+            return null;
         }
-
-        public boolean isForward() {
-            return getBoolean("forward");
+        try {
+            Class<?> type = handle.getClass();
+            return new InputState(
+                    read(type, handle, "forward"),
+                    read(type, handle, "backward"),
+                    read(type, handle, "left"),
+                    read(type, handle, "right"),
+                    read(type, handle, "jump"),
+                    read(type, handle, "shift"),
+                    read(type, handle, "sprint"));
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            log.warn("Ignoring malformed steer vehicle input: {}", e.getMessage());
+            return null;
         }
+    }
 
-        public boolean isJump() {
-            return getBoolean("jump");
-        }
-
-        public boolean isLeft() {
-            return getBoolean("left");
-        }
-
-        public boolean isRight() {
-            return getBoolean("right");
-        }
-
-        public boolean isBackward() {
-            return getBoolean("backward");
-        }
-
-        public boolean isSneak() {
-            return getBoolean("shift");
-        }
-
-        public boolean isSprint() {
-            return getBoolean("sprint");
-        }
-
-        private boolean getBoolean(String method) {
-            try {
-                return (boolean) handle.getClass().getMethod(method).invoke(handle);
-            } catch (Exception e) {
-                log.error("Error getting boolean value from WrappedInput: {}", e.getMessage());
-                return false;
-            }
-        }
-
-        public String toString() {
-            return "WrappedInput{" +
-                    "handle=" + handle +
-                    ", isForward=" + isForward() +
-                    ", isJump=" + isJump() +
-                    ", isLeft=" + isLeft() +
-                    ", isRight=" + isRight() +
-                    ", isBackward=" + isBackward() +
-                    ", isShift=" + isSneak() +
-                    '}';
-        }
-
-        public static void listMethods(Object obj) {
-            Method[] methods = obj.getClass().getDeclaredMethods();
-
-            for (Method method : methods) {
-                log.info("Method: " + method.getName());
-            }
-        }
+    private static boolean read(Class<?> type, Object handle, String method) throws ReflectiveOperationException {
+        return (boolean) type.getMethod(method).invoke(handle);
     }
 }

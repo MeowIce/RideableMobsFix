@@ -31,6 +31,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.event.entity.EntityDismountEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 public class PlayerListener implements Listener {
     private final JavaPlugin plugin;
@@ -145,6 +146,7 @@ public class PlayerListener implements Listener {
     public void onDismount(EntityDismountEvent e) {
         Entity vehicle = e.getEntity();
         if (vehicle instanceof Player player) {
+            InputListener.removeInput(player.getUniqueId());
             vehicle = e.getDismounted();
             if (vehicle instanceof EnderDragon enderDragon) {
                 enderDragon.setPhase(Phase.HOVER);
@@ -155,5 +157,10 @@ public class PlayerListener implements Listener {
             }
 
         }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent e) {
+        InputListener.removeInput(e.getPlayer().getUniqueId());
     }
 }

@@ -7,7 +7,6 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.reflect.StructureModifier;
 import me.BigBou.rideableMobs.util.Util;
-import org.bukkit.Input;
 import org.bukkit.Location;
 import org.bukkit.entity.*;
 import org.bukkit.plugin.Plugin;
@@ -31,14 +30,14 @@ public class KeyboardListener extends PacketAdapter {
             Entity vehicle = player.getVehicle();
             if (vehicle != null && !(vehicle instanceof Vehicle)) {
                 PacketContainer packet = event.getPacket();
-                InputListener.WrappedInput input = InputListener.playerInputs.get(player);
+                InputState input = InputListener.getInput(player.getUniqueId());
                 if (input == null) {
                     return; // No input data available
                 }
-                if (!input.isSneak()) {
+                if (!input.sneak()) {
                     // Inside the update/tick loop
-                    int forward = input.isForward() ? 1 : (input.isBackward() ? -1 : 0);
-                    int sideways = input.isLeft() ? 1 : (input.isRight() ? -1 : 0);
+                    int forward = input.forward() ? 1 : (input.backward() ? -1 : 0);
+                    int sideways = input.left() ? 1 : (input.right() ? -1 : 0);
 
                     // Get player's yaw and pitch
                     Location playerLocation = player.getLocation();
@@ -77,7 +76,7 @@ public class KeyboardListener extends PacketAdapter {
                     }
 
                     // Jumping logic (if the player is jumping and can fly or is on the ground)
-                    if (input.isJump() && (Util.canFly(vehicle) || Util.canSwim(vehicle) && vehicle.isInWater() || vehicle.isOnGround())) {
+                    if (input.jump() && (Util.canFly(vehicle) || Util.canSwim(vehicle) && vehicle.isInWater() || vehicle.isOnGround())) {
                         velocity.setY(0.5);  // Apply upward velocity for jumping
                     }
 

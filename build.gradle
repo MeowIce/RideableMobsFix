@@ -47,3 +47,16 @@ tasks.jar {
 tasks.shadowJar {
     archiveClassifier.set('')
 }
+
+sourceSets {
+    test {
+        compileClasspath += configurations.compileClasspath
+    }
+}
+
+tasks.register('smokeTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + configurations.compileClasspath
+    mainClass = 'me.BigBou.rideableMobs.listener.InputStateSmokeTest'
+    enableAssertions = true
+}

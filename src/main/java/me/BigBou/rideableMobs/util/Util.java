@@ -15,6 +15,7 @@ import org.bukkit.entity.EnderDragon;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 import me.BigBou.rideableMobs.listener.InputListener;
+import me.BigBou.rideableMobs.listener.InputState;
 import org.bukkit.plugin.Plugin;
 
 public class Util {
@@ -85,23 +86,25 @@ public class Util {
         });
     }
 
-    public static void applyMovement(Player player, Entity vehicle, InputListener.WrappedInput input, double speed) {
-        int forward = input.isForward() ? 1 : (input.isBackward() ? -1 : 0);
-        int sideways = input.isLeft() ? 1 : (input.isRight() ? -1 : 0);
+    public static Vector horizontalVelocity(float yaw, InputState input, double speed) {
+        int forward = input.forward() ? 1 : (input.backward() ? -1 : 0);
+        int sideways = input.left() ? 1 : (input.right() ? -1 : 0);
+        double radians = Math.toRadians(yaw);
+        Vector velocity = new Vector(
+                (-forward) * Math.sin(radians) + sideways * Math.cos(radians),
+                0.0,
+                forward * Math.cos(radians) + sideways * Math.sin(radians));
+        return velocity.lengthSquared() == 0 ? velocity : velocity.normalize().multiply(speed);
+    }
+
+    public static void applyMovement(Player player, Entity vehicle, InputState input, double speed) {
 
         Location playerLocation = player.getLocation();
         float yaw = playerLocation.getYaw();
         float pitch = playerLocation.getPitch();
         vehicle.setRotation(yaw, pitch);
 
-        double radians = Math.toRadians(yaw);
-        double x = (-forward) * Math.sin(radians) + sideways * Math.cos(radians);
-        double z = forward * Math.cos(radians) + sideways * Math.sin(radians);
-
-        Vector velocity = new Vector(x, 0.0, z);
-        if (velocity.lengthSquared() > 0) {
-            velocity.normalize().multiply(speed);
-        }
+        Vector velocity = horizontalVelocity(yaw, input, speed);
 
         velocity.setY(vehicle.getVelocity().getY());
 
@@ -120,7 +123,7 @@ public class Util {
             velocity.setY(-0.08);
         }
 
-        if (input.isJump() && (Util.canFly(vehicle) || Util.canSwim(vehicle) && vehicle.isInWater() || vehicle.isOnGround())) {
+        if (input.jump() && (Util.canFly(vehicle) || Util.canSwim(vehicle) && vehicle.isInWater() || vehicle.isOnGround())) {
             velocity.setY(0.5);
         }
 

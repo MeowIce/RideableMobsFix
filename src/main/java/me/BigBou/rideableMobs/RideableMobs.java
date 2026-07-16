@@ -2,6 +2,7 @@ package me.BigBou.rideableMobs;
 
 import me.BigBou.rideableMobs.command.RideableMobsCommand;
 import me.BigBou.rideableMobs.listener.InputListener;
+import me.BigBou.rideableMobs.listener.InputState;
 import me.BigBou.rideableMobs.listener.PacketListener;
 import me.BigBou.rideableMobs.listener.PlayerListener;
 import me.BigBou.rideableMobs.util.Util;
@@ -31,8 +32,8 @@ public final class RideableMobs extends JavaPlugin {
                     }
                     Entity vehicle = player.getVehicle();
                     if (vehicle != null && !(vehicle instanceof org.bukkit.entity.Vehicle)) {
-                        InputListener.WrappedInput input = InputListener.playerInputs.get(player);
-                        if (input != null && !input.isSneak()) {
+                        InputState input = InputListener.getInput(player.getUniqueId());
+                        if (input != null && !input.sneak()) {
                             Util.applyMovement(player, vehicle, input, this.getConfig().getDouble("entity-speed", 0.4));
                         }
                     }
