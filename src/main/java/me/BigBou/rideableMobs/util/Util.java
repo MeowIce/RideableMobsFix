@@ -4,7 +4,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -15,11 +14,13 @@ import org.bukkit.entity.EnderDragon;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 import me.BigBou.rideableMobs.listener.InputState;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
 import org.bukkit.plugin.Plugin;
 
 public class Util {
     private static Plugin plugin;
-    public static final Set<World> ENABLED_WORLDS = new HashSet();
+    public static final Set<World> ENABLED_WORLDS = new HashSet<>();
 
     public Util() {
     }
@@ -33,8 +34,10 @@ public class Util {
         plugin.reloadConfig();
         ENABLED_WORLDS.clear();
         getWorlds();
-        String msg = plugin.getConfig().getString("reload-complete", "&aRideableMobs reload complete.");
-        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
+        String message = plugin.getConfig().getString("reload-complete", "&aRideableMobs reload complete.");
+        sender.sendMessage(
+            LegacyComponentSerializer.legacyAmpersand().deserialize(message)
+        );
     }
 
     public static boolean canSwim(Entity entity) {

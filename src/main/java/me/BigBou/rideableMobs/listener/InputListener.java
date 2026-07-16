@@ -5,7 +5,6 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import me.BigBou.rideableMobs.util.Util;
-import org.bukkit.Input;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
@@ -13,7 +12,6 @@ import org.bukkit.plugin.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Method;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.concurrent.ConcurrentHashMap;

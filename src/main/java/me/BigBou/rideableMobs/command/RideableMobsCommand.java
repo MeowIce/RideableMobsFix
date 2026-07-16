@@ -8,8 +8,9 @@ import java.util.UUID;
 import java.util.HashSet;
 import java.util.Set;
 import me.BigBou.rideableMobs.util.Util;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -68,7 +69,9 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
 
     private void send(CommandSender sender, String key, String fallback) {
         String message = plugin.getConfig().getString(key, fallback);
-        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+        sender.sendMessage(
+            LegacyComponentSerializer.legacyAmpersand().deserialize(message)
+        );
     }
 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -145,7 +148,11 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
                     send(sender, value ? "permission-set-success" : "permission-removed-success", value ? "&aPermission set successfully." : "&aPermission removed successfully.");
                     String message = plugin.getConfig().getString(value ? "granted-permission" : "revoked-permission");
                     if (message != null && !message.isEmpty()) {
-                        player.sendMessage(ChatColor.translateAlternateColorCodes('&', message.replace("%entity_type%", entityType.name())));
+                        player.sendMessage(
+                            LegacyComponentSerializer.legacyAmpersand().deserialize(
+                                message.replace("%entity_type%", entityType.name())
+                            )
+                        );                    
                     }
                     return true;
                 }

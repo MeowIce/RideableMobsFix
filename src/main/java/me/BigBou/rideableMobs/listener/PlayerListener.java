@@ -4,7 +4,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import me.BigBou.rideableMobs.util.Util;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -35,7 +36,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 public class PlayerListener implements Listener {
     private final JavaPlugin plugin;
-    private final HashMap<Material, Collection<PotionEffect>> foodEffects = new HashMap();
+    private final HashMap<Material, Collection<PotionEffect>> foodEffects = new HashMap<>();
 
     public PlayerListener(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -54,7 +55,9 @@ public class PlayerListener implements Listener {
                     if (me.BigBou.rideableMobs.command.RideableMobsCommand.isDisabled(player.getUniqueId())) {
                         String message = this.plugin.getConfig().getString("plugin-disabled-player", "&cYou have disabled RideableMobs.");
                         if (!message.isEmpty()) {
-                            player.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+                            player.sendMessage(
+                                LegacyComponentSerializer.legacyAmpersand().deserialize(message)
+                            );
                         }
                         return;
                     }
@@ -68,7 +71,9 @@ public class PlayerListener implements Listener {
                         assert message != null;
 
                         if (!message.isEmpty()) {
-                            player.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+                            player.sendMessage(
+                                LegacyComponentSerializer.legacyAmpersand().deserialize(message)
+                            );
                         }
 
                     } else if (!me.BigBou.rideableMobs.command.RideableMobsCommand.canRide(player, entityType)) {
@@ -77,7 +82,9 @@ public class PlayerListener implements Listener {
                         assert message != null;
 
                         if (!message.isEmpty()) {
-                            player.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+                            player.sendMessage(
+                                LegacyComponentSerializer.legacyAmpersand().deserialize(message)
+                            );
                         }
 
                     } else {
@@ -90,7 +97,7 @@ public class PlayerListener implements Listener {
                                 AttributeInstance ai = livingEntity.getAttribute(Attribute.MAX_HEALTH);
                                 switch (material) {
                                     case ENCHANTED_GOLDEN_APPLE:
-                                        livingEntity.addPotionEffects((Collection)this.foodEffects.get(Material.ENCHANTED_GOLDEN_APPLE));
+                                        livingEntity.addPotionEffects(this.foodEffects.get(Material.ENCHANTED_GOLDEN_APPLE));
 
                                         assert ai != null;
 
@@ -101,7 +108,7 @@ public class PlayerListener implements Listener {
                                         }
                                         break;
                                     case GOLDEN_APPLE:
-                                        livingEntity.addPotionEffects((Collection)this.foodEffects.get(Material.GOLDEN_APPLE));
+                                        livingEntity.addPotionEffects(this.foodEffects.get(Material.GOLDEN_APPLE));
 
                                         assert ai != null;
 
@@ -119,6 +126,10 @@ public class PlayerListener implements Listener {
                                         if (!player.getGameMode().equals(GameMode.CREATIVE)) {
                                             stack.setAmount(stack.getAmount() - 1);
                                         }
+                                        break;
+                                    default:
+                                        break;
+
                                 }
                             }
 

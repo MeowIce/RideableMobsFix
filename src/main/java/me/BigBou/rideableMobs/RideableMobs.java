@@ -2,7 +2,6 @@ package me.BigBou.rideableMobs;
 
 import me.BigBou.rideableMobs.command.RideableMobsCommand;
 import me.BigBou.rideableMobs.listener.InputListener;
-import me.BigBou.rideableMobs.listener.InputState;
 import me.BigBou.rideableMobs.listener.PacketListener;
 import me.BigBou.rideableMobs.listener.PlayerListener;
 import me.BigBou.rideableMobs.util.Util;
