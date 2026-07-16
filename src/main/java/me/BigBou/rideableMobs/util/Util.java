@@ -11,6 +11,10 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Flying;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.WaterMob;
+import org.bukkit.entity.EnderDragon;
+import org.bukkit.Location;
+import org.bukkit.util.Vector;
+import me.BigBou.rideableMobs.listener.InputListener;
 import org.bukkit.plugin.Plugin;
 
 public class Util {
@@ -78,5 +82,52 @@ public class Util {
             World w = Bukkit.getWorld(world);
             ENABLED_WORLDS.add(w);
         });
+    }
+
+    public static void applyMovement(Player player, Entity vehicle, InputListener.WrappedInput input, double speed) {
+        int forward = input.isForward() ? 1 : (input.isBackward() ? -1 : 0);
+        int sideways = input.isLeft() ? 1 : (input.isRight() ? -1 : 0);
+
+        Location playerLocation = player.getLocation();
+        float yaw = playerLocation.getYaw();
+        float pitch = playerLocation.getPitch();
+        vehicle.setRotation(yaw, pitch);
+
+        double radians = Math.toRadians(yaw);
+        double x = (-forward) * Math.sin(radians) + sideways * Math.cos(radians);
+        double z = forward * Math.cos(radians) + sideways * Math.sin(radians);
+
+        Vector velocity = new Vector(x, 0.0, z);
+        if (velocity.lengthSquared() > 0) {
+            velocity.normalize().multiply(speed);
+        }
+
+        velocity.setY(vehicle.getVelocity().getY());
+
+        if (!Double.isFinite(velocity.getX())) {
+            velocity.setX(0);
+        }
+        if (!Double.isFinite(velocity.getZ())) {
+            velocity.setZ(0);
+        }
+
+        if (vehicle.isInWater() && !Util.canSwim(vehicle) && !vehicle.isOnGround()) {
+            velocity.setY(-0.08);
+        }
+
+        if (Util.canFly(vehicle) && !vehicle.isOnGround()) {
+            velocity.setY(-0.08);
+        }
+
+        if (input.isJump() && (Util.canFly(vehicle) || Util.canSwim(vehicle) && vehicle.isInWater() || vehicle.isOnGround())) {
+            velocity.setY(0.5);
+        }
+
+        if (vehicle instanceof EnderDragon) {
+            EnderDragon enderDragon = (EnderDragon) vehicle;
+            enderDragon.setRotation(yaw + 180.0F, pitch);
+        }
+
+        vehicle.setVelocity(velocity);
     }
 }

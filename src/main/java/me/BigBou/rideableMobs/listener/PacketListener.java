@@ -14,7 +14,6 @@ public class PacketListener {
     public static void onEnable(JavaPlugin plugin) {
         PacketListener.plugin = plugin;
         manager = ProtocolLibrary.getProtocolManager();
-        manager.addPacketListener(new KeyboardListener(plugin));
         manager.addPacketListener(new InputListener(plugin));
     }
 }

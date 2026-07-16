@@ -13,3 +13,11 @@ commands:
     usage: /rideablemobs <command>
     permission: "rideablemobs.commands"
     permission-message: "You do not have permission to use this command"
+
+permissions:
+  rideablemobs.commands:
+    description: Allows using the base /rm commands
+    default: op
+  rideablemobs.toggle:
+    description: Allows toggling RideableMobs globally
+    default: op

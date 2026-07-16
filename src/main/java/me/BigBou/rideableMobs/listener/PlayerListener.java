@@ -50,6 +50,13 @@ public class PlayerListener implements Listener {
             if (entity.getPassengers().size() < 1 && (!(entity instanceof Vehicle) || entity instanceof ZombieHorse || entity instanceof SkeletonHorse)) {
                 Player player = e.getPlayer();
                 if (Util.isWorldEnabled(player)) {
+                    if (me.BigBou.rideableMobs.command.RideableMobsCommand.isDisabled(player.getUniqueId())) {
+                        String message = this.plugin.getConfig().getString("plugin-disabled-player", "&cYou have disabled RideableMobs.");
+                        if (!message.isEmpty()) {
+                            player.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+                        }
+                        return;
+                    }
                     EntityType type = entity.getType();
                     String entityType = !(entity instanceof ComplexEntityPart) && !(entity instanceof ComplexLivingEntity) ? type.name().toLowerCase() : "ender_dragon";
                     boolean isEnabled = !(entity instanceof ComplexEntityPart) && !(entity instanceof ComplexLivingEntity) ? this.plugin.getConfig().getBoolean(entityType) : this.plugin.getConfig().getBoolean("ender_dragon");

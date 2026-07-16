@@ -10,6 +10,9 @@ revoked-permission: "&cYou no longer have permission to ride %entity_type%"
 # Custom message for when an entity is disabled
 entity-disabled: "&cThis entity is disabled and you can't ride them"
 
+# Custom message for when RideableMobs is disabled for the player
+plugin-disabled-player: "&cYou have disabled RideableMobs."
+
 # Setting to establish that the primary hand must be empty in order to ride the entity.
 requires-empty-hand: true
 
@@ -60,6 +63,7 @@ ocelot: true
 panda: true
 parrot: true
 phantom: true
+pig: true
 piglin: true
 piglin_brute: true
 pillager: true
