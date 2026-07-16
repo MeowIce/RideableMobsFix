@@ -60,3 +60,20 @@ tasks.register('smokeTest', JavaExec) {
     mainClass = 'me.BigBou.rideableMobs.listener.InputStateSmokeTest'
     enableAssertions = true
 }
+
+// BEGIN GIAUY AUTO SETUP
+def giauyBuildTimestamp = new Date().format('ddMMyyHHmm', TimeZone.getTimeZone('Asia/Ho_Chi_Minh'))
+
+plugins.withId('java') {
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    archiveBaseName.set("${project.name}_${project.version}_GiaUy_${giauyBuildTimestamp}")
+    archiveVersion.set("")
+}
+// END GIAUY AUTO SETUP
