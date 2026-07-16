@@ -11,13 +11,17 @@ commands:
     aliases:
       - rm
     usage: /rideablemobs <command>
-    permission: "rideablemobs.commands"
-    permission-message: "You do not have permission to use this command"
 
 permissions:
-  rideablemobs.commands:
-    description: Allows using the base /rm commands
+  rideablemobs.commands.permission:
+    description: Allows managing ride permissions for players and entity types
     default: op
-  rideablemobs.toggle:
-    description: Allows toggling RideableMobs globally
+  rideablemobs.commands.reload:
+    description: Allows reloading the RideableMobs configuration
+    default: op
+  rideablemobs.commands.toggle:
+    description: Allows toggling RideableMobs for yourself
+    default: op
+  rideablemobs.ride.*:
+    description: Allows riding all types of mobs
     default: op

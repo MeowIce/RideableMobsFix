@@ -69,7 +69,7 @@ public class PlayerListener implements Listener {
                             player.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
                         }
 
-                    } else if (!player.hasPermission("rideablemobs.ride." + entityType)) {
+                    } else if (!player.hasPermission("rideablemobs.ride.*") && !player.hasPermission("rideablemobs.ride." + entityType)) {
                         String message = this.plugin.getConfig().getString("no-permission-ride");
 
                         assert message != null;

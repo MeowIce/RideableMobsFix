@@ -33,7 +33,8 @@ public class Util {
         plugin.reloadConfig();
         ENABLED_WORLDS.clear();
         getWorlds();
-        sender.sendMessage(ChatColor.GREEN + "RideableMobs reload complete.");
+        String msg = plugin.getConfig().getString("reload-complete", "&aRideableMobs reload complete.");
+        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
     }
 
     public static boolean canSwim(Entity entity) {

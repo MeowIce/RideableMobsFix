@@ -53,67 +53,74 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length < 1) {
-            if (!sender.hasPermission("rideablemobs.commands")) {
-                sender.sendMessage(ChatColor.RED + "You do not have permission to use this command.");
+            if (!sender.hasPermission("rideablemobs.commands.permission") &&
+                !sender.hasPermission("rideablemobs.commands.reload") &&
+                !sender.hasPermission("rideablemobs.commands.toggle")) {
+                String msg = this.plugin.getConfig().getString("no-permission-command", "&cYou do not have permission to use this command.");
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
                 return false;
             }
-            sender.sendMessage(ChatColor.RED + "Invalid usage. Use /rideablemobs <command>.");
+            String msg = this.plugin.getConfig().getString("command-usage", "&cInvalid usage. Use /rideablemobs <command>.");
+            sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
             return false;
         } else if ("toggle".equals(args[0])) {
+            if (!sender.hasPermission("rideablemobs.commands.toggle")) {
+                String msg = this.plugin.getConfig().getString("no-permission-command", "&cYou do not have permission to use this command.");
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
+                return false;
+            }
             if (!(sender instanceof Player)) {
-                sender.sendMessage(ChatColor.RED + "Only players can use this command.");
+                String msg = this.plugin.getConfig().getString("only-players", "&cOnly players can use this command.");
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
                 return true;
             }
             Player player = (Player) sender;
-            if (!player.hasPermission("rideablemobs.toggle")) {
-                player.sendMessage(ChatColor.RED + "You do not have permission to use this command.");
-                return false;
-            }
             
             togglePlayer(player.getUniqueId());
             boolean isDisabled = isDisabled(player.getUniqueId());
-            String status = isDisabled ? "disabled" : "enabled";
-            ChatColor color = isDisabled ? ChatColor.RED : ChatColor.GREEN;
-            player.sendMessage(ChatColor.GREEN + "RideableMobs has been " + color + status + ChatColor.GREEN + " for you.");
+            String msg = this.plugin.getConfig().getString(isDisabled ? "toggle-disabled" : "toggle-enabled", isDisabled ? "&cRideableMobs has been disabled for you." : "&aRideableMobs has been enabled for you.");
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
             return true;
         }
 
-        if (!sender.hasPermission("rideablemobs.commands")) {
-            sender.sendMessage(ChatColor.RED + "You do not have permission to use this command.");
-            return false;
-        }
-
         if ("permission".equals(args[0])) {
+            if (!sender.hasPermission("rideablemobs.commands.permission")) {
+                String msg = this.plugin.getConfig().getString("no-permission-command", "&cYou do not have permission to use this command.");
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
+                return false;
+            }
             if (args.length < 4) {
-                sender.sendMessage(ChatColor.RED + "Invalid usage. Use /rideablemobs permission <player> <entity_type> <true/false>.");
+                String msg = this.plugin.getConfig().getString("permission-command-usage", "&cInvalid usage. Use /rideablemobs permission <player> <entity_type> <true/false>.");
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
                 return false;
             } else {
                 Player player = Bukkit.getPlayer(args[1]);
                 if (player == null) {
-                    sender.sendMessage(ChatColor.RED + "Player not found.");
+                    String msg = this.plugin.getConfig().getString("player-not-found", "&cPlayer not found.");
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
                     return false;
                 } else {
                     EntityType entityType;
                     try {
                         entityType = EntityType.valueOf(args[2].toUpperCase());
                     } catch (IllegalArgumentException var11) {
-                        sender.sendMessage(ChatColor.RED + "Invalid entity type.");
+                        String msg = this.plugin.getConfig().getString("invalid-entity-type", "&cInvalid entity type.");
+                        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
                         return false;
                     }
 
-                    boolean value;
-                    try {
-                        value = Boolean.parseBoolean(args[3]);
-                    } catch (IllegalArgumentException var10) {
-                        sender.sendMessage(ChatColor.RED + "Invalid value. Use true or false.");
+                    if (!args[3].equalsIgnoreCase("true") && !args[3].equalsIgnoreCase("false")) {
+                        String msg = this.plugin.getConfig().getString("invalid-value", "&cInvalid value. Use true or false.");
+                        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
                         return false;
                     }
+                    boolean value = Boolean.parseBoolean(args[3]);
 
                     PermissionAttachment attachment = (PermissionAttachment)permissions.computeIfAbsent(player.getUniqueId(), (playerUUID) -> player.addAttachment(this.plugin));
                     String var10001 = entityType.name().toLowerCase();
                     attachment.setPermission("rideablemobs.ride." + var10001, value);
-                    ChatColor var12 = ChatColor.GREEN;
-                    sender.sendMessage(var12 + "Permission " + (value ? "set" : "removed") + " successfully.");
+                    String msg = this.plugin.getConfig().getString(value ? "permission-set-success" : "permission-removed-success", value ? "&aPermission set successfully." : "&aPermission removed successfully.");
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
                     Optional<String> message = Optional.of(ChatColor.translateAlternateColorCodes('&', (String)Objects.requireNonNull(this.plugin.getConfig().getString(value ? "granted-permission" : "revoked-permission"))));
                     Optional<String> var10000 = message.map((m) -> m.replaceAll("%entity_type%", entityType.name()));
                     Objects.requireNonNull(player);
@@ -122,10 +129,16 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
                 }
             }
         } else if ("reload".equals(args[0])) {
+            if (!sender.hasPermission("rideablemobs.commands.reload")) {
+                String msg = this.plugin.getConfig().getString("no-permission-command", "&cYou do not have permission to use this command.");
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
+                return false;
+            }
             Util.onReload(sender);
             return true;
         } else {
-            sender.sendMessage(ChatColor.RED + "Invalid command.");
+            String msg = this.plugin.getConfig().getString("invalid-command", "&cInvalid command.");
+            sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
             return false;
         }
     }
