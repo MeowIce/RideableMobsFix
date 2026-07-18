@@ -13,31 +13,29 @@ import org.bukkit.entity.WaterMob;
 import org.bukkit.entity.EnderDragon;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
+import me.BigBou.rideableMobs.RideableMobs;
 import me.BigBou.rideableMobs.listener.InputState;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-
-import org.bukkit.plugin.Plugin;
 
 public class Util {
-    private static Plugin plugin;
+    private static RideableMobs plugin;
+    private static LanguageManager lang;
     public static final Set<World> ENABLED_WORLDS = new HashSet<>();
 
     public Util() {
     }
 
-    public static void onEnable(Plugin plugin) {
+    public static void onEnable(RideableMobs plugin) {
         Util.plugin = plugin;
+        Util.lang = plugin.getLanguageManager();
         getWorlds();
     }
 
     public static void onReload(CommandSender sender) {
         plugin.reloadConfig();
+        lang.reload();
         ENABLED_WORLDS.clear();
         getWorlds();
-        String message = plugin.getConfig().getString("reload-complete", "&aRideableMobs reload complete.");
-        sender.sendMessage(
-            LegacyComponentSerializer.legacyAmpersand().deserialize(message)
-        );
+        lang.send(sender, "reload-complete");
     }
 
     public static boolean canSwim(Entity entity) {

@@ -4,6 +4,7 @@ import me.BigBou.rideableMobs.command.RideableMobsCommand;
 import me.BigBou.rideableMobs.listener.InputListener;
 import me.BigBou.rideableMobs.listener.PacketListener;
 import me.BigBou.rideableMobs.listener.PlayerListener;
+import me.BigBou.rideableMobs.util.LanguageManager;
 import me.BigBou.rideableMobs.util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
@@ -11,12 +12,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class RideableMobs extends JavaPlugin {
+    private LanguageManager languageManager;
+
+    public LanguageManager getLanguageManager() {
+        return languageManager;
+    }
+
     public RideableMobs() {
     }
 
     public void onEnable() {
         this.getConfig().options().copyDefaults();
         this.saveDefaultConfig();
+        this.languageManager = new LanguageManager(this);
         Util.onEnable(this);
         RideableMobsCommand rideableMobsCommand = new RideableMobsCommand(this);
         this.getCommand("rideablemobs").setExecutor(rideableMobsCommand);
@@ -40,5 +48,6 @@ public final class RideableMobs extends JavaPlugin {
     }
 
     public void onDisable() {
+        RideableMobsCommand.saveData(this);
     }
 }
