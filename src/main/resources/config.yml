@@ -1,54 +1,10 @@
-# Custom message for when a player does not have permission to ride an entity
-no-permission-ride: "&cYou do not have permission to ride this mob"
+# Language selection for plugin messages. Available languages: en, vi
+language: en
 
-# Custom message for when a player is granted permission to ride an entity
-granted-permission: "&aYou are now granted permission to ride %entity_type%"
-
-# Custom message for when a player's permission to ride an entity is revoked/removed
-revoked-permission: "&cYou no longer have permission to ride %entity_type%"
-
-# Custom message for when an entity is disabled
-entity-disabled: "&cThis entity is disabled and you can't ride them"
-
-# Custom message for when RideableMobs is disabled for the player
-plugin-disabled-player: "&cYou have disabled RideableMobs."
-
-# Message when a user does not have permission to run a command
-no-permission-command: "&cYou do not have permission to use this command."
-
-# Message when a command usage is invalid
-command-usage: "&cInvalid usage. Use /rideablemobs <command>."
-
-# Message when permission command usage is invalid
-permission-command-usage: "&cInvalid usage. Use /rideablemobs permission <player> <entity_type> <true/false>."
-
-# Message when a command can only be used by players
-only-players: "&cOnly players can use this command."
-
-# Message when a player is not found
-player-not-found: "&cPlayer not found."
-
-# Message when an invalid entity type is provided
-invalid-entity-type: "&cInvalid entity type."
-
-# Message when an invalid value is provided in permission command
-invalid-value: "&cInvalid value. Use true or false."
-
-# Message when a permission is successfully set
-permission-set-success: "&aPermission set successfully."
-
-# Message when a permission is successfully removed
-permission-removed-success: "&aPermission removed successfully."
-
-# Message when the plugin is reloaded
-reload-complete: "&aRideableMobs reload complete."
-
-# Message when a command is invalid
-invalid-command: "&cInvalid command."
-
-# Messages when RideableMobs is toggled
-toggle-enabled: "&aRideableMobs has been &2enabled&a for you."
-toggle-disabled: "&cRideableMobs has been &4disabled&c for you."
+# Whether to notify players when certain events occur
+plugin-disabled-player-notify: false
+no-permission-notify: false
+entity-disabled-notify: true
 
 # Setting to establish that the primary hand must be empty in order to ride the entity.
 requires-empty-hand: true
@@ -104,7 +60,7 @@ pig: true
 piglin: true
 piglin_brute: true
 pillager: true
-player: true
+player: false #AntiCheat incompatible, many bugs, DO NOT ENABLE
 polar_bear: true
 pufferfish: true
 rabbit: true

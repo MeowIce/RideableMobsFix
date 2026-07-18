@@ -3,8 +3,8 @@ package me.BigBou.rideableMobs.listener;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import me.BigBou.rideableMobs.RideableMobs;
 import me.BigBou.rideableMobs.util.Util;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -28,20 +28,84 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
+import me.BigBou.rideableMobs.util.LanguageManager;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 public class PlayerListener implements Listener {
-    private final JavaPlugin plugin;
+    private final RideableMobs plugin;
+    private final LanguageManager lang;
     private final HashMap<Material, Collection<PotionEffect>> foodEffects = new HashMap<>();
 
-    public PlayerListener(JavaPlugin plugin) {
+    public PlayerListener(RideableMobs plugin) {
         this.plugin = plugin;
+        this.lang = plugin.getLanguageManager();
         this.foodEffects.put(Material.ENCHANTED_GOLDEN_APPLE, List.of(new PotionEffect(PotionEffectType.ABSORPTION, 2400, 3), new PotionEffect(PotionEffectType.REGENERATION, 600, 1), new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 6000, 0), new PotionEffect(PotionEffectType.RESISTANCE, 6000, 0)));
         this.foodEffects.put(Material.GOLDEN_APPLE, List.of(new PotionEffect(PotionEffectType.ABSORPTION, 2400, 0), new PotionEffect(PotionEffectType.REGENERATION, 100, 1)));
+    }
+
+    private void rideOrFeed(Player player, Entity entity) {
+        boolean shouldBeEmptyHand = this.plugin.getConfig().getBoolean("requires-empty-hand");
+        if (shouldBeEmptyHand && !player.getInventory().getItemInMainHand().getType().isAir()) {
+            ItemStack stack = player.getInventory().getItemInMainHand();
+            Material material = stack.getType();
+            if (material.isEdible()) {
+                LivingEntity livingEntity = (LivingEntity)entity;
+                AttributeInstance ai = livingEntity.getAttribute(Attribute.MAX_HEALTH);
+                switch (material) {
+                    case ENCHANTED_GOLDEN_APPLE:
+                        livingEntity.addPotionEffects(this.foodEffects.get(Material.ENCHANTED_GOLDEN_APPLE));
+
+                        assert ai != null;
+
+                        livingEntity.setHealth(ai.getValue());
+                        player.getWorld().spawnParticle(Particle.HEART, livingEntity.getEyeLocation(), 5);
+                        if (!player.getGameMode().equals(GameMode.CREATIVE)) {
+                            stack.setAmount(stack.getAmount() - 1);
+                        }
+                        break;
+                    case GOLDEN_APPLE:
+                        livingEntity.addPotionEffects(this.foodEffects.get(Material.GOLDEN_APPLE));
+
+                        assert ai != null;
+
+                        livingEntity.setHealth(Math.min(livingEntity.getHealth() + (double)10.0F, ai.getValue()));
+                        player.getWorld().spawnParticle(Particle.HEART, livingEntity.getEyeLocation(), 3);
+                        if (!player.getGameMode().equals(GameMode.CREATIVE)) {
+                            stack.setAmount(stack.getAmount() - 1);
+                        }
+                        break;
+                    case APPLE:
+                        assert ai != null;
+
+                        livingEntity.setHealth(Math.min(livingEntity.getHealth() + (double)3.0F, ai.getValue()));
+                        player.getWorld().spawnParticle(Particle.HEART, livingEntity.getEyeLocation(), 1);
+                        if (!player.getGameMode().equals(GameMode.CREATIVE)) {
+                            stack.setAmount(stack.getAmount() - 1);
+                        }
+                        break;
+                    default:
+                        break;
+
+                }
+            }
+
+        } else {
+            if (entity instanceof ArmorStand && !player.isSneaking()) {
+                entity.addPassenger(player);
+            } else if (entity instanceof ComplexEntityPart) {
+                ComplexEntityPart entityPart = (ComplexEntityPart)entity;
+                ComplexLivingEntity parent = entityPart.getParent();
+                EnderDragon enderDragon = (EnderDragon)parent;
+                enderDragon.setPhase(Phase.FLY_TO_PORTAL);
+                enderDragon.addPassenger(player);
+            } else if (!(entity instanceof ArmorStand)) {
+                entity.addPassenger(player);
+            }
+
+        }
     }
 
     @EventHandler
@@ -53,11 +117,8 @@ public class PlayerListener implements Listener {
                 Player player = e.getPlayer();
                 if (Util.isWorldEnabled(player)) {
                     if (me.BigBou.rideableMobs.command.RideableMobsCommand.isDisabled(player.getUniqueId())) {
-                        String message = this.plugin.getConfig().getString("plugin-disabled-player", "&cYou have disabled RideableMobs.");
-                        if (!message.isEmpty()) {
-                            player.sendMessage(
-                                LegacyComponentSerializer.legacyAmpersand().deserialize(message)
-                            );
+                        if (this.plugin.getConfig().getBoolean("plugin-disabled-player-notify")) {
+                            lang.send(player, "plugin-disabled-player");
                         }
                         return;
                     }
@@ -65,88 +126,25 @@ public class PlayerListener implements Listener {
                     String entityType = !(entity instanceof ComplexEntityPart) && !(entity instanceof ComplexLivingEntity) ? type.name().toLowerCase() : "ender_dragon";
                     boolean isEnabled = !(entity instanceof ComplexEntityPart) && !(entity instanceof ComplexLivingEntity) ? this.plugin.getConfig().getBoolean(entityType) : this.plugin.getConfig().getBoolean("ender_dragon");
 
-                    if (!isEnabled) {
-                        String message = this.plugin.getConfig().getString("entity-disabled");
+                    if (me.BigBou.rideableMobs.command.RideableMobsCommand.isExplicitlyDenied(player, entityType)) {
+                        lang.send(player, "no-permission-ride");
 
-                        assert message != null;
+                    } else if (me.BigBou.rideableMobs.command.RideableMobsCommand.isExplicitlyGranted(player, entityType)) {
+                        // Explicit grant overrides entity-disabled check
+                        rideOrFeed(player, entity);
 
-                        if (!message.isEmpty()) {
-                            player.sendMessage(
-                                LegacyComponentSerializer.legacyAmpersand().deserialize(message)
-                            );
+                    } else if (!isEnabled) {
+                        if (this.plugin.getConfig().getBoolean("entity-disabled-notify")) {
+                            lang.send(player, "entity-disabled");
                         }
 
-                    } else if (!me.BigBou.rideableMobs.command.RideableMobsCommand.canRide(player, entityType)) {
-                        String message = this.plugin.getConfig().getString("no-permission-ride");
-
-                        assert message != null;
-
-                        if (!message.isEmpty()) {
-                            player.sendMessage(
-                                LegacyComponentSerializer.legacyAmpersand().deserialize(message)
-                            );
+                    } else if (!me.BigBou.rideableMobs.command.RideableMobsCommand.hasBukkitPermission(player, entityType)) {
+                        if (this.plugin.getConfig().getBoolean("no-permission-notify")) {
+                            lang.send(player, "no-permission-ride");
                         }
 
                     } else {
-                        boolean shouldBeEmptyHand = this.plugin.getConfig().getBoolean("requires-empty-hand");
-                        if (shouldBeEmptyHand && !player.getInventory().getItemInMainHand().getType().isAir()) {
-                            ItemStack stack = player.getInventory().getItemInMainHand();
-                            Material material = stack.getType();
-                            if (material.isEdible()) {
-                                LivingEntity livingEntity = (LivingEntity)entity;
-                                AttributeInstance ai = livingEntity.getAttribute(Attribute.MAX_HEALTH);
-                                switch (material) {
-                                    case ENCHANTED_GOLDEN_APPLE:
-                                        livingEntity.addPotionEffects(this.foodEffects.get(Material.ENCHANTED_GOLDEN_APPLE));
-
-                                        assert ai != null;
-
-                                        livingEntity.setHealth(ai.getValue());
-                                        player.getWorld().spawnParticle(Particle.HEART, livingEntity.getEyeLocation(), 5);
-                                        if (!player.getGameMode().equals(GameMode.CREATIVE)) {
-                                            stack.setAmount(stack.getAmount() - 1);
-                                        }
-                                        break;
-                                    case GOLDEN_APPLE:
-                                        livingEntity.addPotionEffects(this.foodEffects.get(Material.GOLDEN_APPLE));
-
-                                        assert ai != null;
-
-                                        livingEntity.setHealth(Math.min(livingEntity.getHealth() + (double)10.0F, ai.getValue()));
-                                        player.getWorld().spawnParticle(Particle.HEART, livingEntity.getEyeLocation(), 3);
-                                        if (!player.getGameMode().equals(GameMode.CREATIVE)) {
-                                            stack.setAmount(stack.getAmount() - 1);
-                                        }
-                                        break;
-                                    case APPLE:
-                                        assert ai != null;
-
-                                        livingEntity.setHealth(Math.min(livingEntity.getHealth() + (double)3.0F, ai.getValue()));
-                                        player.getWorld().spawnParticle(Particle.HEART, livingEntity.getEyeLocation(), 1);
-                                        if (!player.getGameMode().equals(GameMode.CREATIVE)) {
-                                            stack.setAmount(stack.getAmount() - 1);
-                                        }
-                                        break;
-                                    default:
-                                        break;
-
-                                }
-                            }
-
-                        } else {
-                            if (entity instanceof ArmorStand && !player.isSneaking()) {
-                                entity.addPassenger(player);
-                            } else if (entity instanceof ComplexEntityPart) {
-                                ComplexEntityPart entityPart = (ComplexEntityPart)entity;
-                                ComplexLivingEntity parent = entityPart.getParent();
-                                EnderDragon enderDragon = (EnderDragon)parent;
-                                enderDragon.setPhase(Phase.FLY_TO_PORTAL);
-                                enderDragon.addPassenger(player);
-                            } else if (!(entity instanceof ArmorStand)) {
-                                entity.addPassenger(player);
-                            }
-
-                        }
+                        rideOrFeed(player, entity);
                     }
                 }
             }
