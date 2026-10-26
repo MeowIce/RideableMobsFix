@@ -26,15 +26,10 @@ repositories {
         name = 'sonatype'
         url = 'https://oss.sonatype.org/content/groups/public/'
     }
-    maven {
-        name = 'dmulloy2-repo'
-        url = 'https://repo.dmulloy2.net/repository/public/'
-    }
 }
 
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT'
-    compileOnly 'com.comphenix.protocol:ProtocolLib:5.3.0'
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -57,7 +52,7 @@ sourceSets {
 tasks.register('smokeTest', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + configurations.compileClasspath
-    mainClass = 'me.BigBou.rideableMobs.listener.InputStateSmokeTest'
+    mainClass = 'me.BigBou.rideableMobs.listener.MovementSmokeTest'
     enableAssertions = true
 }
 

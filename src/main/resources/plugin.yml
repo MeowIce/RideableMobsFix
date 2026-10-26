@@ -3,8 +3,6 @@ version: '1.3.0'
 main: me.BigBou.rideableMobs.RideableMobs
 api-version: '1.21'
 authors: [ BigBou ]
-depend:
-  - ProtocolLib
 commands:
   rideablemobs:
     description: Commands of the RideableMobs plugin.

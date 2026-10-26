@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,6 +20,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
@@ -77,8 +79,10 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
         }
 
         deniedEntities.clear();
-        if (data.contains("denied-entities")) {
-            for (String uuidStr : data.getConfigurationSection("denied-entities").getKeys(false)) {
+        // contains() is true for a hand-written empty list, but getConfigurationSection is null there
+        ConfigurationSection deniedSection = data.getConfigurationSection("denied-entities");
+        if (deniedSection != null) {
+            for (String uuidStr : deniedSection.getKeys(false)) {
                 try {
                     UUID uuid = UUID.fromString(uuidStr);
                     Set<String> set = ConcurrentHashMap.newKeySet();
@@ -89,8 +93,9 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
         }
 
         grantedEntities.clear();
-        if (data.contains("granted-entities")) {
-            for (String uuidStr : data.getConfigurationSection("granted-entities").getKeys(false)) {
+        ConfigurationSection grantedSection = data.getConfigurationSection("granted-entities");
+        if (grantedSection != null) {
+            for (String uuidStr : grantedSection.getKeys(false)) {
                 try {
                     UUID uuid = UUID.fromString(uuidStr);
                     Set<String> set = ConcurrentHashMap.newKeySet();
@@ -179,7 +184,7 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
 
             EntityType entityType;
             try {
-                entityType = EntityType.valueOf(args[2].toUpperCase());
+                entityType = EntityType.valueOf(args[2].toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException ex) {
                 lang.send(sender, "invalid-entity-type");
                 return true;
@@ -191,7 +196,7 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
 
-            String entityName = entityType.name().toLowerCase();
+            String entityName = entityType.name().toLowerCase(Locale.ROOT);
             UUID targetUUID = player.getUniqueId();
             switch (value) {
                 case "true":
@@ -244,7 +249,7 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
             } else if (args.length == 3) {
                 StringUtil.copyPartialMatches(args[2], Arrays.stream(EntityType.values())
                         .filter(EntityType::isAlive)
-                        .map(type -> type.name().toLowerCase())
+                        .map(type -> type.name().toLowerCase(Locale.ROOT))
                         .toList(), matches);
             } else if (args.length == 4) {
                 StringUtil.copyPartialMatches(args[3], List.of("true", "false", "default"), matches);

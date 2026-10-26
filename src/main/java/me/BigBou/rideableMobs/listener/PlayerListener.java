@@ -3,6 +3,7 @@ package me.BigBou.rideableMobs.listener;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import me.BigBou.rideableMobs.RideableMobs;
 import me.BigBou.rideableMobs.util.Util;
 
@@ -12,29 +13,24 @@ import org.bukkit.Particle;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.Camel;
 import org.bukkit.entity.ComplexEntityPart;
 import org.bukkit.entity.ComplexLivingEntity;
 import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Llama;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.SkeletonHorse;
-import org.bukkit.entity.Vehicle;
-import org.bukkit.entity.ZombieHorse;
 import org.bukkit.entity.EnderDragon.Phase;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import me.BigBou.rideableMobs.util.LanguageManager;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.event.entity.EntityDismountEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 
 public class PlayerListener implements Listener {
     private final RideableMobs plugin;
@@ -64,7 +60,7 @@ public class PlayerListener implements Listener {
         return null;
     }
 
-    private void rideOrFeed(Player player, Entity entity) {
+    private boolean rideOrFeed(Player player, Entity entity) {
         boolean shouldBeEmptyHand = this.plugin.getConfig().getBoolean("requires-empty-hand", true);
         if (shouldBeEmptyHand && !player.getInventory().getItemInMainHand().getType().isAir()) {
             ItemStack stack = player.getInventory().getItemInMainHand();
@@ -72,11 +68,11 @@ public class PlayerListener implements Listener {
             if (material.isEdible()) {
                 LivingEntity livingEntity = resolveLivingEntity(entity);
                 if (livingEntity == null) {
-                    return;
+                    return false;
                 }
                 AttributeInstance ai = livingEntity.getAttribute(Attribute.MAX_HEALTH);
                 if (ai == null) {
-                    return;
+                    return false;
                 }
                 double maxHealth = ai.getValue();
                 switch (material) {
@@ -87,7 +83,7 @@ public class PlayerListener implements Listener {
                         if (!player.getGameMode().equals(GameMode.CREATIVE)) {
                             stack.setAmount(stack.getAmount() - 1);
                         }
-                        break;
+                        return true;
                     case GOLDEN_APPLE:
                         livingEntity.addPotionEffects(this.foodEffects.get(Material.GOLDEN_APPLE));
                         livingEntity.setHealth(Math.min(livingEntity.getHealth() + 10.0, maxHealth));
@@ -95,36 +91,43 @@ public class PlayerListener implements Listener {
                         if (!player.getGameMode().equals(GameMode.CREATIVE)) {
                             stack.setAmount(stack.getAmount() - 1);
                         }
-                        break;
+                        return true;
                     case APPLE:
                         livingEntity.setHealth(Math.min(livingEntity.getHealth() + 3.0, maxHealth));
                         player.getWorld().spawnParticle(Particle.HEART, livingEntity.getEyeLocation(), 1);
                         if (!player.getGameMode().equals(GameMode.CREATIVE)) {
                             stack.setAmount(stack.getAmount() - 1);
                         }
-                        break;
+                        return true;
                     default:
-                        break;
+                        return false;
                 }
             }
-        } else {
-            if (entity instanceof ArmorStand && !player.isSneaking()) {
-                entity.addPassenger(player);
-            } else if (entity instanceof ComplexEntityPart part) {
-                ComplexLivingEntity parent = part.getParent();
-                if (parent instanceof EnderDragon enderDragon) {
-                    enderDragon.setPhase(Phase.FLY_TO_PORTAL);
-                    enderDragon.addPassenger(player);
-                } else {
-                    parent.addPassenger(player);
-                }
-            } else if (entity instanceof EnderDragon enderDragon) {
-                enderDragon.setPhase(Phase.FLY_TO_PORTAL);
-                enderDragon.addPassenger(player);
-            } else if (!(entity instanceof ArmorStand)) {
-                entity.addPassenger(player);
-            }
+            return false;
         }
+
+        if (entity instanceof ArmorStand && !player.isSneaking()) {
+            entity.addPassenger(player);
+            return true;
+        }
+        if (entity instanceof ComplexEntityPart part) {
+            ComplexLivingEntity parent = part.getParent();
+            if (parent instanceof EnderDragon enderDragon) {
+                enderDragon.setPhase(Phase.FLY_TO_PORTAL);
+            }
+            parent.addPassenger(player);
+            return true;
+        }
+        if (entity instanceof EnderDragon enderDragon) {
+            enderDragon.setPhase(Phase.FLY_TO_PORTAL);
+            enderDragon.addPassenger(player);
+            return true;
+        }
+        if (!(entity instanceof ArmorStand)) {
+            entity.addPassenger(player);
+            return true;
+        }
+        return false;
     }
 
     @EventHandler
@@ -135,13 +138,7 @@ public class PlayerListener implements Listener {
         }
 
         Entity entity = e.getRightClicked();
-        boolean isRideableVehicle = !(entity instanceof Vehicle)
-                || entity instanceof ZombieHorse
-                || entity instanceof SkeletonHorse
-                || entity instanceof Llama
-                || entity instanceof Camel;
-
-        if (entity.getPassengers().isEmpty() && isRideableVehicle) {
+        if (entity.getPassengers().isEmpty() && Util.isAllowedVehicle(entity)) {
             Player player = e.getPlayer();
             if (Util.isWorldEnabled(player)) {
                 if (me.BigBou.rideableMobs.command.RideableMobsCommand.isDisabled(player.getUniqueId())) {
@@ -153,7 +150,7 @@ public class PlayerListener implements Listener {
 
                 EntityType type = entity.getType();
                 String entityType = !(entity instanceof ComplexEntityPart) && !(entity instanceof ComplexLivingEntity)
-                        ? type.name().toLowerCase()
+                        ? type.name().toLowerCase(Locale.ROOT)
                         : "ender_dragon";
 
                 boolean isEnabled = !(entity instanceof ComplexEntityPart) && !(entity instanceof ComplexLivingEntity)
@@ -163,7 +160,9 @@ public class PlayerListener implements Listener {
                 if (me.BigBou.rideableMobs.command.RideableMobsCommand.isExplicitlyDenied(player, entityType)) {
                     lang.send(player, "no-permission-ride");
                 } else if (me.BigBou.rideableMobs.command.RideableMobsCommand.isExplicitlyGranted(player, entityType)) {
-                    rideOrFeed(player, entity);
+                    if (rideOrFeed(player, entity)) {
+                        e.setCancelled(true);
+                    }
                 } else if (!isEnabled) {
                     if (this.plugin.getConfig().getBoolean("entity-disabled-notify")) {
                         lang.send(player, "entity-disabled");
@@ -173,9 +172,20 @@ public class PlayerListener implements Listener {
                         lang.send(player, "no-permission-ride");
                     }
                 } else {
-                    rideOrFeed(player, entity);
+                    if (rideOrFeed(player, entity)) {
+                        e.setCancelled(true);
+                    }
                 }
             }
+        }
+    }
+
+    // A right click sends interact_at then interact; the mount from the first must not also run vanilla behaviour.
+    @EventHandler
+    public void onInteractEntity(PlayerInteractEntityEvent e) {
+        Entity clicked = e.getRightClicked();
+        if (clicked.getPassengers().contains(e.getPlayer()) && Util.isAllowedVehicle(clicked)) {
+            e.setCancelled(true);
         }
     }
 
@@ -183,20 +193,16 @@ public class PlayerListener implements Listener {
     public void onDismount(EntityDismountEvent e) {
         if (e.getEntity() instanceof Player player) {
             Entity vehicle = e.getDismounted();
-            if (Util.canSwim(vehicle) && vehicle.isInWater() && !player.isSneaking()) {
+            // toggle-off must always dismount, even from a swimming mob
+            if (Util.canSwim(vehicle) && vehicle.isInWater() && !player.isSneaking()
+                    && !me.BigBou.rideableMobs.command.RideableMobsCommand.isDisabled(player.getUniqueId())) {
                 e.setCancelled(true);
                 return;
             }
 
-            InputListener.removeInput(player.getUniqueId());
             if (vehicle instanceof EnderDragon enderDragon) {
                 enderDragon.setPhase(Phase.HOVER);
             }
         }
-    }
-
-    @EventHandler
-    public void onQuit(PlayerQuitEvent e) {
-        InputListener.removeInput(e.getPlayer().getUniqueId());
     }
 }

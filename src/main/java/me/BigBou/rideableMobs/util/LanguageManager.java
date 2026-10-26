@@ -20,7 +20,6 @@ public class LanguageManager {
     private FileConfiguration langConfig;
     private FileConfiguration configFallback;
     private FileConfiguration defaultFallback;
-    private String language;
 
     public LanguageManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -28,7 +27,7 @@ public class LanguageManager {
     }
 
     public void reload() {
-        this.language = plugin.getConfig().getString("language", "en");
+        String language = plugin.getConfig().getString("language", "en");
         this.messageCache.clear();
         this.langConfig = loadLanguageFile(language);
         this.configFallback = plugin.getConfig();
@@ -62,10 +61,6 @@ public class LanguageManager {
         }
 
         return config;
-    }
-
-    public String getLanguage() {
-        return language;
     }
 
     public String getMessage(String key) {
