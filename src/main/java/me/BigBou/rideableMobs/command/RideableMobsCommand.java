@@ -4,35 +4,33 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import me.BigBou.rideableMobs.RideableMobs;
 import me.BigBou.rideableMobs.util.LanguageManager;
 import me.BigBou.rideableMobs.util.Util;
 
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-
 import org.bukkit.util.StringUtil;
 
 public class RideableMobsCommand implements CommandExecutor, TabCompleter {
     private final RideableMobs plugin;
     private final LanguageManager lang;
-    private static final Set<UUID> disabledPlayers = new HashSet<>();
-    // Tracks explicitly denied entity types per player (overrides OP permissions)
-    private static final HashMap<UUID, Set<String>> deniedEntities = new HashMap<>();
-    // Tracks explicitly granted entity types per player
-    private static final HashMap<UUID, Set<String>> grantedEntities = new HashMap<>();
+    private static final Set<UUID> disabledPlayers = ConcurrentHashMap.newKeySet();
+    private static final ConcurrentMap<UUID, Set<String>> deniedEntities = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<UUID, Set<String>> grantedEntities = new ConcurrentHashMap<>();
     private static final List<String> availableCommands = List.of("permission", "reload", "toggle");
 
     public static boolean isDisabled(UUID uuid) {
@@ -40,10 +38,8 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
     }
 
     public static void togglePlayer(UUID uuid) {
-        if (disabledPlayers.contains(uuid)) {
+        if (!disabledPlayers.add(uuid)) {
             disabledPlayers.remove(uuid);
-        } else {
-            disabledPlayers.add(uuid);
         }
     }
 
@@ -57,9 +53,6 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
         return granted != null && granted.contains(entityType);
     }
 
-    /**
-     * Checks if a player has permission to ride via Bukkit permission nodes.
-     */
     public static boolean hasBukkitPermission(Player player, String entityType) {
         return player.hasPermission("rideablemobs.ride.*") || player.hasPermission("rideablemobs.ride." + entityType);
     }
@@ -88,7 +81,9 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
             for (String uuidStr : data.getConfigurationSection("denied-entities").getKeys(false)) {
                 try {
                     UUID uuid = UUID.fromString(uuidStr);
-                    deniedEntities.put(uuid, new HashSet<>(data.getStringList("denied-entities." + uuidStr)));
+                    Set<String> set = ConcurrentHashMap.newKeySet();
+                    set.addAll(data.getStringList("denied-entities." + uuidStr));
+                    deniedEntities.put(uuid, set);
                 } catch (IllegalArgumentException ignored) {}
             }
         }
@@ -98,13 +93,20 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
             for (String uuidStr : data.getConfigurationSection("granted-entities").getKeys(false)) {
                 try {
                     UUID uuid = UUID.fromString(uuidStr);
-                    grantedEntities.put(uuid, new HashSet<>(data.getStringList("granted-entities." + uuidStr)));
+                    Set<String> set = ConcurrentHashMap.newKeySet();
+                    set.addAll(data.getStringList("granted-entities." + uuidStr));
+                    grantedEntities.put(uuid, set);
                 } catch (IllegalArgumentException ignored) {}
             }
         }
     }
 
     public static void saveData(RideableMobs plugin) {
+        File dataFolder = plugin.getDataFolder();
+        if (!dataFolder.exists()) {
+            dataFolder.mkdirs();
+        }
+
         FileConfiguration data = new YamlConfiguration();
 
         List<String> disabledList = new ArrayList<>();
@@ -122,12 +124,13 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
         }
 
         try {
-            data.save(new File(plugin.getDataFolder(), "data.yml"));
+            data.save(new File(dataFolder, "data.yml"));
         } catch (IOException e) {
             plugin.getLogger().warning("Could not save data.yml");
         }
     }
 
+    @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length < 1) {
             if (!sender.hasPermission("rideablemobs.commands.permission") &&
@@ -138,17 +141,16 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
             }
             lang.send(sender, "command-usage");
             return true;
-        } else if ("toggle".equals(args[0])) {
+        } else if ("toggle".equalsIgnoreCase(args[0])) {
             if (!sender.hasPermission("rideablemobs.commands.toggle")) {
                 lang.send(sender, "no-permission-command");
                 return true;
             }
-            if (!(sender instanceof Player)) {
+            if (!(sender instanceof Player player)) {
                 lang.send(sender, "only-players");
                 return true;
             }
-            Player player = (Player) sender;
-            
+
             togglePlayer(player.getUniqueId());
             saveData(plugin);
             boolean isDisabled = isDisabled(player.getUniqueId());
@@ -159,7 +161,7 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if ("permission".equals(args[0])) {
+        if ("permission".equalsIgnoreCase(args[0])) {
             if (!sender.hasPermission("rideablemobs.commands.permission")) {
                 lang.send(sender, "no-permission-command");
                 return true;
@@ -167,64 +169,55 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
             if (args.length < 4) {
                 lang.send(sender, "permission-command-usage");
                 return true;
-            } else {
-                Player player = Bukkit.getPlayer(args[1]);
-                if (player == null) {
-                    lang.send(sender, "player-not-found");
-                    return true;
-                } else {
-                    EntityType entityType;
-                    try {
-                        entityType = EntityType.valueOf(args[2].toUpperCase());
-                    } catch (IllegalArgumentException var11) {
-                        lang.send(sender, "invalid-entity-type");
-                        return true;
-                    }
-
-                    String value = args[3].toLowerCase();
-                    if (!value.equals("true") && !value.equals("false") && !value.equals("default")) {
-                        lang.send(sender, "invalid-value");
-                        return true;
-                    }
-
-                    String entityName = entityType.name().toLowerCase();
-                    UUID targetUUID = player.getUniqueId();
-                    switch (value) {
-                        case "true":
-                            // Grant: remove from denied, add to granted
-                            {
-                                Set<String> denied = deniedEntities.get(targetUUID);
-                                if (denied != null) denied.remove(entityName);
-                                grantedEntities.computeIfAbsent(targetUUID, k -> new HashSet<>()).add(entityName);
-                            }
-                            break;
-                        case "false":
-                            // Deny: remove from granted, add to denied
-                            {
-                                Set<String> granted = grantedEntities.get(targetUUID);
-                                if (granted != null) granted.remove(entityName);
-                                deniedEntities.computeIfAbsent(targetUUID, k -> new HashSet<>()).add(entityName);
-                            }
-                            break;
-                        case "default":
-                            // Reset: remove from both, fall back to Bukkit permissions
-                            {
-                                Set<String> denied = deniedEntities.get(targetUUID);
-                                if (denied != null) denied.remove(entityName);
-                                Set<String> granted = grantedEntities.get(targetUUID);
-                                if (granted != null) granted.remove(entityName);
-                            }
-                            break;
-                    }
-                    saveData(plugin);
-                    lang.send(sender, "default".equals(value) ? "permission-default-success" : ("true".equals(value) ? "permission-set-success" : "permission-removed-success"), "%entity_type%", entityType.name());
-                    if (!"default".equals(value)) {
-                        lang.send(player, "true".equals(value) ? "granted-permission" : "revoked-permission", "%entity_type%", entityType.name());
-                    }
-                    return true;
-                }
             }
-        } else if ("reload".equals(args[0])) {
+
+            Player player = Bukkit.getPlayer(args[1]);
+            if (player == null) {
+                lang.send(sender, "player-not-found");
+                return true;
+            }
+
+            EntityType entityType;
+            try {
+                entityType = EntityType.valueOf(args[2].toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                lang.send(sender, "invalid-entity-type");
+                return true;
+            }
+
+            String value = args[3].toLowerCase();
+            if (!value.equals("true") && !value.equals("false") && !value.equals("default")) {
+                lang.send(sender, "invalid-value");
+                return true;
+            }
+
+            String entityName = entityType.name().toLowerCase();
+            UUID targetUUID = player.getUniqueId();
+            switch (value) {
+                case "true":
+                    Set<String> denied = deniedEntities.get(targetUUID);
+                    if (denied != null) denied.remove(entityName);
+                    grantedEntities.computeIfAbsent(targetUUID, k -> ConcurrentHashMap.newKeySet()).add(entityName);
+                    break;
+                case "false":
+                    Set<String> granted = grantedEntities.get(targetUUID);
+                    if (granted != null) granted.remove(entityName);
+                    deniedEntities.computeIfAbsent(targetUUID, k -> ConcurrentHashMap.newKeySet()).add(entityName);
+                    break;
+                case "default":
+                    Set<String> d = deniedEntities.get(targetUUID);
+                    if (d != null) d.remove(entityName);
+                    Set<String> g = grantedEntities.get(targetUUID);
+                    if (g != null) g.remove(entityName);
+                    break;
+            }
+            saveData(plugin);
+            lang.send(sender, "default".equals(value) ? "permission-default-success" : ("true".equals(value) ? "permission-set-success" : "permission-removed-success"), "%entity_type%", entityType.name());
+            if (!"default".equals(value)) {
+                lang.send(player, "true".equals(value) ? "granted-permission" : "revoked-permission", "%entity_type%", entityType.name());
+            }
+            return true;
+        } else if ("reload".equalsIgnoreCase(args[0])) {
             if (!sender.hasPermission("rideablemobs.commands.reload")) {
                 lang.send(sender, "no-permission-command");
                 return true;
@@ -237,6 +230,7 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         ArrayList<String> matches = new ArrayList<>();
         if (args.length == 1) {
@@ -244,7 +238,7 @@ public class RideableMobsCommand implements CommandExecutor, TabCompleter {
                     .filter(name -> sender.hasPermission("rideablemobs.commands." + name))
                     .toList();
             StringUtil.copyPartialMatches(args[0], allowed, matches);
-        } else if (sender.hasPermission("rideablemobs.commands.permission") && "permission".equals(args[0])) {
+        } else if (sender.hasPermission("rideablemobs.commands.permission") && "permission".equalsIgnoreCase(args[0])) {
             if (args.length == 2) {
                 StringUtil.copyPartialMatches(args[1], Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), matches);
             } else if (args.length == 3) {

@@ -3,15 +3,13 @@ package me.BigBou.rideableMobs.util;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.bukkit.Bukkit;
-import org.bukkit.World;
+import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Flying;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.WaterMob;
-import org.bukkit.entity.EnderDragon;
-import org.bukkit.Location;
 import org.bukkit.util.Vector;
 import me.BigBou.rideableMobs.RideableMobs;
 import me.BigBou.rideableMobs.listener.InputState;
@@ -19,7 +17,7 @@ import me.BigBou.rideableMobs.listener.InputState;
 public class Util {
     private static RideableMobs plugin;
     private static LanguageManager lang;
-    public static final Set<World> ENABLED_WORLDS = new HashSet<>();
+    public static final Set<String> ENABLED_WORLDS = new HashSet<>();
 
     public Util() {
     }
@@ -33,57 +31,45 @@ public class Util {
     public static void onReload(CommandSender sender) {
         plugin.reloadConfig();
         lang.reload();
-        ENABLED_WORLDS.clear();
         getWorlds();
         lang.send(sender, "reload-complete");
     }
 
     public static boolean canSwim(Entity entity) {
-        boolean var10000;
-        switch (entity.getType()) {
-            case DROWNED:
-            case GUARDIAN:
-            case TURTLE:
-            case AXOLOTL:
-                var10000 = true;
-                break;
-            default:
-                var10000 = entity instanceof WaterMob;
+        if (entity == null) {
+            return false;
         }
-
-        return var10000;
+        return switch (entity.getType()) {
+            case DROWNED, GUARDIAN, ELDER_GUARDIAN, TURTLE, AXOLOTL, FROG -> true;
+            default -> entity instanceof WaterMob;
+        };
     }
 
     public static boolean canFly(Entity entity) {
-        boolean var10000;
-        switch (entity.getType()) {
-            case ALLAY:
-            case BAT:
-            case BEE:
-            case BLAZE:
-            case ENDER_DRAGON:
-            case PARROT:
-            case VEX:
-            case WITHER:
-                var10000 = true;
-                break;
-            default:
-                var10000 = entity instanceof Flying;
+        if (entity == null) {
+            return false;
         }
-
-        return var10000;
+        return switch (entity.getType()) {
+            case ALLAY, BAT, BEE, BLAZE, ENDER_DRAGON, PARROT, VEX, WITHER -> true;
+            default -> entity instanceof Flying;
+        };
     }
 
     public static boolean isWorldEnabled(Player player) {
-        return ENABLED_WORLDS.contains(player.getWorld());
+        if (player == null || player.getWorld() == null) {
+            return false;
+        }
+        return ENABLED_WORLDS.contains(player.getWorld().getName().toLowerCase());
     }
 
     private static void getWorlds() {
+        ENABLED_WORLDS.clear();
         List<String> worlds = plugin.getConfig().getStringList("worlds");
-        worlds.forEach((world) -> {
-            World w = Bukkit.getWorld(world);
-            ENABLED_WORLDS.add(w);
-        });
+        for (String world : worlds) {
+            if (world != null && !world.isBlank()) {
+                ENABLED_WORLDS.add(world.trim().toLowerCase());
+            }
+        }
     }
 
     public static Vector horizontalVelocity(float yaw, InputState input, double speed) {
@@ -98,18 +84,19 @@ public class Util {
     }
 
     public static void applyMovement(Player player, Entity vehicle, InputState input, double speed) {
-
         Location playerLocation = player.getLocation();
         float yaw = playerLocation.getYaw();
         float pitch = playerLocation.getPitch();
         vehicle.setRotation(yaw, pitch);
 
         Vector velocity = horizontalVelocity(yaw, input, speed);
-
         velocity.setY(vehicle.getVelocity().getY());
 
         if (!Double.isFinite(velocity.getX())) {
             velocity.setX(0);
+        }
+        if (!Double.isFinite(velocity.getY())) {
+            velocity.setY(0);
         }
         if (!Double.isFinite(velocity.getZ())) {
             velocity.setZ(0);
@@ -129,8 +116,7 @@ public class Util {
             velocity.setY(0.5);
         }
 
-        if (vehicle instanceof EnderDragon) {
-            EnderDragon enderDragon = (EnderDragon) vehicle;
+        if (vehicle instanceof EnderDragon enderDragon) {
             enderDragon.setRotation(yaw + 180.0F, pitch);
         }
 

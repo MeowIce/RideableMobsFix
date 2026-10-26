@@ -20,16 +20,21 @@ worlds:
 
 # Entities:
 allay: true
+armadillo: true
 armor_stand: true
 axolotl: true
 bat: true
 bee: true
 blaze: true
+bogged: true
+breeze: true
+camel: true
 cat: true
 cave_spider: true
 chicken: true
 cod: true
 cow: true
+creaking: true
 creeper: true
 dolphin: true
 drowned: true
@@ -72,11 +77,13 @@ silverfish: true
 skeleton: true
 skeleton_horse: true
 slime: true
+sniffer: true
 snow_golem: true
 spider: true
 squid: true
 stray: true
 tadpole: true
+trader_llama: true
 tropical_fish: true
 turtle: true
 vex: true

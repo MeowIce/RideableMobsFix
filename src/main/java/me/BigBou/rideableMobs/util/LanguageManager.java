@@ -19,6 +19,7 @@ public class LanguageManager {
     private final Map<String, String> messageCache = new HashMap<>();
     private FileConfiguration langConfig;
     private FileConfiguration configFallback;
+    private FileConfiguration defaultFallback;
     private String language;
 
     public LanguageManager(JavaPlugin plugin) {
@@ -31,6 +32,11 @@ public class LanguageManager {
         this.messageCache.clear();
         this.langConfig = loadLanguageFile(language);
         this.configFallback = plugin.getConfig();
+
+        InputStream defIn = plugin.getResource("lang/en.yml");
+        if (defIn != null) {
+            this.defaultFallback = YamlConfiguration.loadConfiguration(new InputStreamReader(defIn, StandardCharsets.UTF_8));
+        }
     }
 
     private FileConfiguration loadLanguageFile(String lang) {
@@ -69,6 +75,9 @@ public class LanguageManager {
             }
             if (configFallback != null && configFallback.contains(k)) {
                 return configFallback.getString(k);
+            }
+            if (defaultFallback != null && defaultFallback.contains(k)) {
+                return defaultFallback.getString(k);
             }
             return "<" + k + ">";
         });

@@ -38,5 +38,12 @@ public final class InputStateSmokeTest {
         assert pluginYaml.contains("rideablemobs.toggle:");
         assert pluginYaml.contains("rideablemobs.commands.permission: true");
         assert pluginYaml.contains("rideablemobs.commands.toggle: true");
+
+        String configYaml = Files.readString(Path.of("src/main/resources/config.yml"));
+        assert configYaml.contains("armadillo: true");
+        assert configYaml.contains("breeze: true");
+        assert configYaml.contains("bogged: true");
+        assert configYaml.contains("creaking: true");
+        assert configYaml.contains("sniffer: true");
     }
 }
